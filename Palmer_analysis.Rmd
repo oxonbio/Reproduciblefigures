@@ -1,0 +1,417 @@
+
+---
+title: "Palmer Penguins Reproducible Analysis"
+output:
+  html_document: default
+  pdf_document: default
+date: "2023-10-09"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+*The following is a template .rmd RMarkdown file for you to use for your homework submission.*
+
+*Please Knit your .rmd to a PDF format or HTML and submit that with no identifiers like your name.*
+
+*To create a PDF, first install tinytex and load the package. Then press the Knit arrow and select "Knit to PDF".*
+
+## QUESTION 01: Data Visualisation for Science Communication
+
+*Create a figure using the Palmer Penguin dataset that is correct but badly communicates the data. **Do not make a boxplot**.*
+
+*Use the following references to guide you:* 
+
+-   [*https://www.nature.com/articles/533452a*](https://www.nature.com/articles/533452a){.uri}
+-   [*https://elifesciences.org/articles/16800*](https://elifesciences.org/articles/16800){.uri}
+
+*Note: Focus on visual elements rather than writing misleading text on it.*
+
+Install Required packages
+```{r  Package installation, echo=FALSE, warning=FALSE}
+if(!require("ggplot2")) 
+  {install.packages("ggplot2")}
+
+if(!require("dplyr")) 
+{install.packages("dplyr")}
+
+if(!require("janitor")) 
+{install.packages("janitor")}
+
+if(!require("palmerpenguins")) 
+{install.packages("palmerpenguins")}
+```
+Load required Packages
+```{r Package Loading, warning=TRUE}
+library(ggplot2)
+library(dplyr)
+library(janitor)
+library(palmerpenguins)
+
+```
+
+
+### a) Provide your figure here:
+Code to plot the bad graph
+```{r  Bad Graph, warning=FALSE, echo=FALSE}
+colors<- c("azure3", "azure4", "black")
+ggplot(data = penguins)+
+       aes(x= body_mass_g,
+           y = bill_length_mm, color = species)+
+  scale_colour_manual(values = colors)+
+       geom_point(size=7)+
+  geom_smooth(method = "lm", SE = FALSE, linetype = "solid", colour = "black")+
+  labs(title = "A graph to show the relationship between Body mass and Bill Length in penguins", x = "Body Mass (g)",y = "Bill Length (mm)")+
+  xlim(2000,6000)+
+  ylim(10,100)
+echo=FALSE
+
+```
+
+
+
+### b) Write about how your design choices mislead the reader about the underlying data (200-300 words).
+The grey background and white grid lines make following the relative position of the data on both axes difficult for the reader, and thus make the underlying data more difficult to understand in the context of the graph. The second design choice which may mislead a reader of this graph is the inappropriate scales on both the  X and Y axes. Both axes do not start in relevant positions to allow the spread of the data that they scale to be shown on the graph as efficiently as possible, meaning that the data is confined to a lower proportion of the available graph space making it more difficult to ascertain the trends shown in the data. Furthermore the X axis scale design actually cuts of a small number of data points for penguins with both high body mass and culmen length, thus this scale choice means that the data points shown on the graph do not accurately depict the data used to plot the line of best fit. A further design choice which damages the reader's understanding are the colours chosen to represent the 3 different penguin species, which are all similar to each other and to the grey background of the graph. This issue is furthered by using a very large point size argument which means that the darker coloured points often completely block out other underlying data meaning that not all data for all species is visible to the reader. Finally the application of a black line of best fit matching the colour of the Gentoo penguin data, which represents the line of best fit across all 3 species, may mislead the reader into believing this line applies to the Gentoo data further reducing its efficacy in portraying the trends of the underyling data to the reader.
+
+*Include references.*
+
+------------------------------------------------------------------------
+
+## QUESTION 2: Data Pipeline
+
+*Write a data analysis pipeline in your .rmd RMarkdown file. You should be aiming to write a clear explanation of the steps as well as clear code.*
+
+*Your code should include the steps practiced in the lab session:*
+
+-   *Load the data*
+
+-   *Appropriately clean the data*
+
+-   *Create an Exploratory Figure (**not a boxplot**)*
+
+-   *Save the figure*
+
+-   ***New**: Run a statistical test*
+
+-   ***New**: Create a Results Figure*
+
+-   *Save the figure*
+
+*An exploratory figure shows raw data, such as the distribution of the data. A results figure demonstrates the stats method chosen, and includes the results of the stats test.*
+
+*Between your code, communicate clearly what you are doing and why.*
+
+*Your text should include:*
+
+-   *Introduction*
+
+-   *Hypothesis*
+
+-   *Stats Method*
+
+-   *Results*
+
+-   *Discussion*
+
+-   *Conclusion*
+
+*You will be marked on the following:*
+
+### a) Your code for readability and functionality
+
+### b) Your figures for communication
+
+### c) Your text communication of your analysis
+
+*Below is a template you can use.*
+
+------------------------------------------------------------------------
+
+### Introduction
+This work will attempt to analyse how the body mass and sex of individuals of the three penguin species sampled in the Palmerpenguins dataset affect the length of their culmen (bill). In order to achieve this it will be necessary first to produce a clean version of the raw data collected by researchers, removing inconsistencies/ irrelevant data, and ensuring that the data is optimised for statistical analyses. Next I will plot an exploratory figure to visual assess how these variables may interact before creating hypotheses and selecting appropriate statistical tests to test them. This will allow me to both plot figures and draw conclusions on how sex and body mass influence culmen length.
+
+#Data exploration
+#Save raw data as a CSV file
+```{r}
+write.csv(penguins_raw, "data/penguins_raw.csv")
+```
+
+
+#Load raw data from saved file
+```{r, 'result=FALSE', fig.show='hide', echo=FALSE, message=FALSE,collapse=TRUE, include=FALSE}
+read.csv("data/penguins_raw.csv")
+
+```
+
+##Cleaning pipeline for the data
+The code used for cleaning functions and organizing the data was given in Lydia France's teaching of this topic.
+```{r, warning=FALSE}
+#Generate cleaning functions:
+clean_column_names <- function(Raw_data) {
+Raw_data %>%
+select(-starts_with("Delta")) %>%
+select(-Comments) %>%
+clean_names()}
+#Makes use of clean_names function from Janitor package to remove two columns of data which are irrelevant to the analysis.
+
+shorten_species <- function(Raw_data) {
+Raw_data%>%
+mutate(Species = case_when(
+Species == "Adelie Penguin (Pygoscelis adeliae)" ~ "Adelie",
+Species == "Chinstrap penguin (Pygoscelis antarctica)" ~ "Chinstrap",
+Species == "Gentoo penguin (Pygoscelis papua)" ~ "Gentoo" ))
+}
+
+#This function shortens the names of the species given in the original raw data to make them easier to work with in subsequent analysis.
+
+remove_empty_columns_rows <-function(Raw_data) {
+  Raw_data%>%
+remove_empty(c("rows", "cols"))
+}
+#This function makes use of the remove_empty function in janitor to remove any columns or rows from the original data that do not contain any data.
+
+subset_columns <- function(Raw_data, column_names) {
+Raw_data %>%
+select(all_of(column_names))
+}
+#Allows for only columns containing data relevant to future analyses to be subsetted.
+
+```
+
+###Using Functions to create a cleaning pipeline for the penguins_raw.csv to create a dataset containing relevant data for analysis of effect of body mass and sex on bill length
+```{r, warning=FALSE}
+penguins_clean <- penguins_raw %>%#creating a new cleaned version of the data through applying the previously created functions.
+shorten_species%>%
+clean_column_names()%>%
+remove_empty_columns_rows()
+```
+
+### Save this cleaned dataset
+```{r, warning=FALSE, include=FALSE}
+write.csv(penguins_clean, "data/penguins_clean.csv")
+```
+
+###Load this file from the saved copy
+```{r,  fig.show='hide', echo=FALSE, message=FALSE,collapse=TRUE, include=FALSE}
+read.csv("data/penguins_clean.csv")
+```
+
+###Create a dataset containing only the relevant information for the analysis of the effects of penguins' sex and body mass on the lengths of their beaks
+
+```{r, warning=FALSE,}
+penguins_beakanalysis <- penguins_clean %>%
+subset_columns(c("culmen_length_mm", "sex", "body_mass_g", "species"))%>%
+na.omit()
+#This code filters the cleaned dataset to only contain the relevant data for the sex of individual penguins, their body mass and the length of their culmen (bill). Furthermore it removes any rows containing NA values using the na.omit function.
+```
+
+
+```{r, include=FALSE}
+write.csv(penguins_beakanalysis,"data/penguins_beakanalysis.csv")
+read.csv("data/penguins_beakanalysis.csv")
+```
+
+
+
+#Produce an exploratory figure to consider hypotheses about how body mass and sex interact to affect culmen length in penguins.
+Allows for a visual representation of the data to allow potential hypotheses to be considered.
+```{r, warning=FALSE}
+beak_length_scatterplot <- ggplot(data = penguins_beakanalysis,
+#Include species to allow observation about whether same trend seems to apply across species even though analysis will be focused on whole dataset.
+aes(x= body_mass_g,
+y=culmen_length_mm, colour =species, alpha=sex))+
+geom_point(size=2.5)+
+scale_alpha_manual(values = c(0.3,1000))+
+labs(title= "A plot showing the body mass and culmen length of 3 different penguin species", x="Body mass (g)", y = "Culmen length (mm)")
+beak_length_scatterplot
+```
+
+
+Save the exploratory figure
+```{r, warning=FALSE}
+if(!require("ragg"))
+{install.packages("ragg")}
+library(ragg)
+agg_png("figures/exploratory.png",
+        width = 500, height = 500, units = "px")
+beak_length_scatterplot
+dev.off()
+```
+
+
+### Hypothesis
+Based on analysis of this exploratory figure which appears to show an increase in culmen length both across all species and within species. I hypothesize that culmen length of penguins increases as body mass increases. Furthermore this plot suggests a relationship between sex and culmen length, based on this I hypothesize that sex has a significant impact on the length of a culmen in these 3 sampled species.
+Finally I will test the hypothesis that an interaction between the Body mass and the sex of the individual is significant in determining the length of the Culmen in penguins.
+
+### Statistical Methods
+ Calculate a pearsons correlation coefficient to examine the correlation between body mass and beak length, aims to determine statistically the trend in the data between the two variables.
+```{r}
+#Subset codes for males and females
+male_data <- subset(penguins_beakanalysis, sex == "MALE")
+female_data <- subset(penguins_beakanalysis, sex == "FEMALE")
+#Calculate pearson's correlation coefficients of body mass and culmen length in males and females/
+correlation_male <- cor(male_data$culmen_length_mm, male_data$body_mass_g,  method = "pearson")
+correlation_female <- cor(female_data$culmen_length_mm, female_data$ body_mass_g, method = "pearson")
+
+correlation_male
+correlation_female
+```
+Stronger  positive correlation between body mass and culmen length in females (0.581) than in males (0.477), although no statistical test carried out to ascertain the significance of this difference, this initial analysis only aimed to vaguely demonstrate the trend shown between the two traits.
+
+
+Calculate a linear regression to assess how well body mass and culmen length adhere to a linear model.
+```{r, warning=FALSE}
+# Apply a linear model to investigate how well culmen length and body mass fit a straight line across both sexes.
+linear<- lm(culmen_length_mm ~ body_mass_g, data =penguins_beakanalysis)
+summary(linear)
+adjusted_r_squared <- summary(linear)$adj.r.squared
+P_value_gradient<- summary(linear)$coefficients[ "body_mass_g","Pr(>|t|)"]
+```
+
+Use an ANCOVA test on a linear model, including sex as a categorical variable, to assess how these two different factors interact to affect the growth of the penguins' culmen.
+```{r, warning=FALSE}
+ANCOVAmod <- lm(culmen_length_mm ~ body_mass_g + sex + body_mass_g*sex, data=penguins_beakanalysis )
+ANCOVA_test<-anova(ANCOVAmod)
+(ANCOVA_test)
+p_value_body_mass_g<-ANCOVA_test["body_mass_g", "Pr(>F)"]
+p_value_interaction<-ANCOVA_test["body_mass_g:sex", "Pr(>F)"]
+p_value_sex<-ANCOVA_test["sex","Pr(>F)"]
+F_body_mass_g<-ANCOVA_test["body_mass_g", "F value"]
+F_interaction<-ANCOVA_test["body_mass_g:sex", "F value"]
+F_sex<-ANCOVA_test["sex", "F value"]
+```
+
+### Results & Discussion
+
+
+
+```{r warning=FALSE}
+library(ggplot2)
+linear.fig<-ggplot(data = penguins_beakanalysis)+
+aes(x=body_mass_g, y=culmen_length_mm, colour = sex)+ #Plotting body mass against culmen length
+geom_point()+ #Represents individuals as data points
+ geom_smooth(method = "lm", SE = FALSE, linetype = "solid", colour = "black",alpha=0.5)+ # fits a linear line of best fit
+geom_smooth(method = "lm", SE=FALSE, linetype = "solid", apha=0.5)+ # fits a linear line of best fit for each sex
+ylim(30,70)+ #allows space for statistical results to be added
+theme_bw()+
+geom_text(
+x = min(penguins_beakanalysis$body_mass_g), y= max(penguins_beakanalysis$culmen_length_mm),
+label = paste("r(male body mass vs culmen length) = ", round(correlation_male, 3)),
+hjust = 0, vjust = -7, color = "darkturquoise")+ #adds correlation coefficient statistic for males
+geom_text(
+x= min(penguins_beakanalysis$body_mass_g), y=max(penguins_beakanalysis$culmen_length_mm),
+label = paste("r (Female body mass vs culmen length) = ", round(correlation_female,3)),
+hjust=0, vjust=-5, color = "lightcoral", size=4 # adds correlation coefficient statistic for females
+)+ #"hjust argument here required to overcome formatting issues when knitting figure
+geom_text(
+x=min(penguins_beakanalysis$body_mass_g), y=max(penguins_beakanalysis$culmen_length_mm),
+label = paste ("Adjusted R squared of linear model = ", round(adjusted_r_squared,3)),
+hjust=0, vjust=-3, color = "black")+ # adds R squared of linear model
+geom_text(
+x=min(penguins_beakanalysis$body_mass_g), y=max(penguins_beakanalysis$culmen_length_mm),
+label = paste("Gradient P value of linear model = ", as.character(P_value_gradient)),
+hjust=0, vjust=-1, color = "black")+ # Adds P value of gradient in linear model
+labs(title= "Linear analyses of body mass vs Culmen length","culmen length (mm", "body mass (g)") 
+linear.fig
+
+```
+
+This figure demonstrates the results of some of the basic linear analyses of the effect of body mass on Culmen length. I wanted to investigate this as a relevant factor for culmen length in penguins, given its relevance in the growth of the culmen realative to the rest of the penguin body plan and the extent that it scales with body mass increase. The pearson's correlation coefficient calculations demonstrate a moderate correlation between body mass and culmen length in both males and females. The linear model suggests that the gradient of the line best fitting this data is statistically significantly different to zero at the 5% significance level backing up this correlation. Furthermore the R squared value  from this linear model indicates that about 35% of the variation seen in this figure in culmen length can be explained by body mass changes. This suggests that given the number of factors that are likely to be relevant in the development of this trait that body mass is likely to have a significant effect
+
+
+
+
+
+
+##Save the linear analysis figure
+```{r, warning=FALSE}
+if(!require("ragg"))
+{install.packages("ragg")}
+library(ragg)
+linear.png<-agg_png("figures/linear.png",
+        width = 500, height = 300,res=72, units = "px")
+linear.fig
+dev.off()
+
+```
+
+
+
+
+
+###Plot a further scatterplot to exemplify the ANCOVA analysis results
+```{r, warning=FALSE}
+ANCOVA.fig<-ggplot(data=penguins_beakanalysis, 
+aes(x=body_mass_g, y=culmen_length_mm, colour=sex))+
+geom_point()+
+scale_colour_manual(values=c("MALE"= "blue","FEMALE"= "green"))+#Sets colours of both sexes points
+geom_smooth(method="lm")+ # adds line of best fit
+ylim(30,68)+
+geom_text(
+x=min(penguins_beakanalysis$body_mass_g), y=max(penguins_beakanalysis$culmen_length_mm),label = paste(" P value for significance of body mass =",as.character(p_value_body_mass_g)),
+ hjust=0, vjust=-6, color = "red")+#Adds the P value of the ANOVA for body mass
+  geom_text(
+  x=min(penguins_beakanalysis$body_mass_g), y=max(penguins_beakanalysis$culmen_length_mm),
+  label = paste("P value for significance of penguin sex =",round(p_value_sex,5)),
+ hjust=0, vjust=-4, color = "blue")+ # Adds P value of ANOVA for Sex
+  geom_text(
+  x=min(penguins_beakanalysis$body_mass_g), y=max(penguins_beakanalysis$culmen_length_mm),
+  label = paste(" P value for significance of the interaction between sex and BM  =",round(p_value_interaction,5)),
+ hjust=0, vjust=-2, color = "purple")+ #Adds P value of anova for interaction term
+labs(title= "ANCOVA resuts figure", x="Body Mass (g)", y = "Culmen length (mm)")
+ANCOVA.fig
+```
+
+The results of the ANCOVA test using sex as a categorical factor and body mass as a continuous factor suggest that both sex and body mass have a significant effect on the culmen length of penguins. However, this model also suggested that the interaction of these two factors was not significant at the 5% significance level in determining culmen length.
+
+Save ANCOVA plot
+```{r, warning=FALSE}
+if(!require("ragg"))
+{install.packages("ragg")}
+library(ragg)
+agg_png("figures/ANCOVA.png",
+        width = 580, height = 350,res=72, units = "px")#Adjust width, height and res to suit plot
+ANCOVA.fig
+dev.off()
+
+```
+
+
+### Conclusion
+To conclude this analysis pathway allowed me to elucidate which factors contribute to the differences in culmen length seen across the palmer penguin datat. This process was facilitated by the pipeline to produce a cleaned dataframe which contained only the relevant aspects of the data to answer my particular question. My results demonstrated a correlation between the body mass of penguins and the length of their culmen, modelled best by a linear relationship with a non-zero positive gradient. Using an ANCOVA test to further understand this relationship as well as what significance the sex of an individual is. This model suggested that both sex and body mass are key in determining culmen length although the interaction between the two seemed to be less significant.
+------------------------------------------------------------------------
+
+## QUESTION 3: Open Science
+
+### a) GitHub
+
+*Upload your RProject you created for **Question 2** and any files and subfolders used to GitHub. Do not include any identifiers such as your name. Make sure your GitHub repo is public.*
+
+*GitHub link:*
+
+*You will be marked on your repo organisation and readability.*
+
+### b) Share your repo with a partner, download, and try to run their data pipeline.
+
+*Partner's GitHub link:*
+
+*You **must** provide this so I can verify there is no plagiarism between you and your partner.*
+
+### c) Reflect on your experience running their code. (300-500 words)
+
+-   *What elements of your partner's code helped you to understand their data pipeline?*
+
+-   *Did it run? Did you need to fix anything?*
+
+-   *What suggestions would you make for improving their code to make it more understandable or reproducible, and why?*
+
+-   *If you needed to alter your partner's figure using their code, do you think that would be easy or difficult, and why?*
+
+### d) Reflect on your own code based on your experience with your partner's code and their review of yours. (300-500 words)
+
+-   *What improvements did they suggest, and do you agree?*
+
+-   *What did you learn about writing code for other people?*
+
+
