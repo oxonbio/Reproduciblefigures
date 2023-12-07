@@ -1,6 +1,6 @@
 ---
 title: "Question2"
-author: "Jonathan Dickinson"
+author: "anon"
 date: "2023-12-06"
 output: html_document
 ---
